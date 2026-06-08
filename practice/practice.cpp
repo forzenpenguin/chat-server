@@ -25,61 +25,6 @@
 using namespace std;
 using boost::asio::ip::tcp;
 
-// 3. The Object Lifetime Guard Step
-class connection_object : public enable_shared_from_this<connection_object> {
-public:
-	typedef shared_ptr<connection_object> pointer;
-	static pointer create(boost::asio::io_context& io_context) {
-		return pointer(new connection_object(io_context));
-	}
-	tcp::socket& socket() {
-		return socket_;
-	}
-	void start() {
-		message_ = "Hello, client!";
-		boost::asio::async_write(socket_, boost::asio::buffer(message_),
-			[self = shared_from_this()](const boost::system::error_code& error, size_t bytes_transferred) {
-				if (!error) {
-					cout << "Message sent to client: " << bytes_transferred << " bytes" << endl;
-				}
-				else {
-					cerr << "Error sending message: " << error.message() << endl;
-				}
-			});
-	}
-private:
-	connection_object(boost::asio::io_context& io_context) : socket_(io_context) {}
-	void handle_write(const boost::system::error_code& /*error*/, size_t /*bytes_transferred*/) {
-		cout << "Message sent to client." << endl;
-	}
-	tcp::socket socket_;
-	string message_;
-
-};
-class server {
-public:
-	// 1. setup:
-	server(boost::asio::io_context& io_context, const std::string& address, unsigned short port)
-		: io_context_(io_context),
-		  acceptor_(io_context_, tcp::endpoint(boost::asio::ip::make_address(address), port))
-	{
-		start_accept();
-	}
-	// 2. listing loop:
-	void start_accept() {
-		connection_object::pointer new_connection = connection_object::create(io_context_);
-		acceptor_.async_accept(new_connection->socket(), [this, new_connection](const boost::system::error_code& error) {
-			if (!error) {
-				new_connection->start();
-			}
-			start_accept();
-			});
-	}
-
-private:
-	boost::asio::io_context& io_context_;
-	tcp::acceptor acceptor_;
-};
 
 class chat_handler : public enable_shared_from_this<chat_handler> {
 public:
