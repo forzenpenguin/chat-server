@@ -1,0 +1,321 @@
+## Signed & unsigned numbers
+    1. unsigned is a data type only used to store positive numbers, it can't store negative numbers instead it will replace it with a garbget numbers.
+    2. Signed is a data type the can store both negative and positive numbers.
+## Auto data type
+    1. Auto is an automatic data type assigned by the compiler, you only need to provide the identifier and the value.
+    2. If you assigned an auto data type with an unsigned data type like this "auto ex{90u};" you can't change the value to a negative number.
+## Fraction data types
+    1. Float has a precision range of 4
+    2. Double has a precision range of 8 ?? we must use double in all our bot logic since it can carry enough factions when dealing with mid-cap and large-cap coins
+    3. long Double has a precision range of 16 // we gonna to need this when we're dealing with very long fractional numbers "e.g. 1.38e-11 -> 10 power of -11" in low-cap coins.
+
+## Postfix & Prefix
+    1. Postfix will increment or decrement the value but the new value will be visible in the next time we use the value not the same time you're incrementing, e.g "cout << num1++ << endl;".
+    2. Prefix will increment or decrement the value right away and you can use it immediately, for example "cout << ++num1 <<endl;".
+
+## Logical Operators
+    1. And -> &&
+    2. Or -> ||
+    3. inverse -> !var_name e.g !True = False
+
+## Ternary Operator
+    . condition ? option 1 (if the condition is true) : option 2 (if the condition is false);
+
+## Loops
+    1. Do-While loop executes the body first then checks the condition after it.
+        . The variable that is declared will only be exccessibale in the loop scop only, you can't acccess it out side it
+    2. Range-based for loop -> you don't need to specify the size of the array to loop for in the condition "e.g i < size(array_name)".
+        int scores[] {1,23,4,5} for(const auto& score : scores) {cout << score <<endl;}
+
+## Pointers
+    1. int* var_name {&var_name} -> that is how to initialize a pointer variable that points to the location of another variable in memory, the output will be in hexadecimal.
+    2. cout << var_name << endl; -> it will print the address of the variable in hexadecimal.
+    3. cout << *var_name << endl; -> this is called dereferencing, it will print the value of the address not the actual address.
+    4. You can't declear an int pointer and store it inside adress of another type like double.
+    5. cout << pointer_name << endl; -> this will print the memory address of the variable | cout << *Pointer_name << endl; -> this will print the actual value of the variable.
+    # Stack and Heap memory
+        1. The default memory type of variables are stack memory which means the life time of the variable is controled by the OS using the scope mechanisam.
+        2. You can declear your own memory address and nothing can't used it except you, you are the one who controls the life time of your variables. YOU MUST RELEASE THE MEMORY AFTER YOU DONE OF IT.
+            decleration: int* p_var {new int (44)}; -> closing: delete p_var; p_var = nullptr; 
+        3. You can't assing a new value to your memory or the old value will be leaked.
+    # Dynamic arrays
+        1. decleration: int* P_var_name = new int[100] {1,3,4}; -> closing: delete [] P_var_name; P_var_name = nullptr;
+        2. You can't use range-based for loop in the dynamic array.
+## Refrences:
+    1. Refence is a way to make a static variable a dynamic one that can be acccessed in different funcions
+        decleration: int num {1}; int& var_name {num};
+    2. You can modify the refrence var and the actual var would modified and visa versa.
+## Lambda Functions:
+    1. Syntax -> [capture list](parameters) -> return type {body}(calling);
+    2. Example
+        - cout << [](double a, double b) -> int {return a + b;}(4.5, 9.8) << endl; // the return type will be integer since we assinged a specific return type of int
+        - double c{34};
+         [&c](){body}; // the capture list paramters is used to pass varaibles that is declared above the function and we're using reference to pass the variables so we don't make any unnessecery copies.
+        - double c{34};
+        - double d{4};
+         [&](){body}; // that is a how to capture everything that is declared outside the lambda scope, you can use '=' to capture by value but you won't able to overwrite any variable in that scope.
+## Function Templates:
+    1. Templates are blueprints not a real C++ function it helps you reuse the function logic for each datatype without oqupaiting a new memory address, it will recall the previou blueprint if for a specific datatype if you use it before.
+    1. Syntax:
+        Template (typename T)
+        T maximum(T a, T b) {return (a > b) ? a : b;};    // T represents the datatype of the variables that you pass
+        T maximum(T a, T b) {return (a > b) ? a : b;};  maximum<double>(1, 2.3);  // You can specify the dataype the Template returns so that you can operate on different data types.
+
+## Classes:
+    1. Members of classes a private till you manually set it to be public.
+    2. You can't modify memory classes ouside the class if it's a private.
+    3. The best way to call an object of a class is by using a dynamic memory/heap memory. REMEMBER TO RELEASE THE MEMORY ADDRESS AFTER USING IT.
+    4. Syntax:
+        class student {
+            private:
+                string name;
+                int ID;
+                string department;
+            public:
+                // constracturs -> used to assing vlues to the variables so that they don't store a garbage.
+                student (string name, int ID, string department) {
+                    name = name;
+                    ID = ID;
+                    department = department;
+                }
+                double score () {
+                    return 1 + 2 + 3;
+                }
+        }
+        int main () {
+            student* student1 = new student("hassan", 0000, "CS")
+            cout << student1->score << endl;  // instead of dereferencing the object to access the value of that memory address we can use the keyword '->' which automates the proccess. 
+            delete student1; // DON'T EVER FORGET TO RELEASE THE MEMORY ADDRESS.
+        }
+
+
+
+## Polymorphism
+
+        class shape {
+        protected: 
+            string desc;
+        public:
+            shape() = default;
+            shape(string desc_param)
+                desc = desc_param;
+            virtual ~shape() = default; // that is a virtual destructor, it is used to ensure that the destructor of the derived class is called when you delete an object of the derived class using a pointer to the base class.
+            virtual void show() override {
+                cout << "shape: " << desc << endl;
+            }
+        };
+
+        class oval : public {
+        protected:
+            double x_radius;
+            double y_radius;
+        public:
+            oval() = default;
+            oval(double x_param, double y_param, string desc_param) : shape(desc_param), x_radius(x_param), y_radius(y_param) {};
+            virtual ~oval() = default; // that is a virtual destructor, it is used to ensure that the destructor of the derived class is called when you delete an object of the derived class using a pointer to the base class.
+            virtual void show() override { ### -> "VIRTUAL" keyword is used to tell the compiler that this function can be overridden in the derived class, and if you call this function using a pointer or reference to the base class it will call the derived class version of the function if it exists.
+                cout << "shape: " << desc << endl;
+            }
+            void do_non_virtual_object() {
+                cout << "this is a non virtual function in the oval class" << endl;
+        };
+
+        class circle : public oval {
+        protected:
+            double radius;
+        public:
+            circle() = default;
+            circle(double x_param, double y_param, string desc_param) oval(x_param, y_param, desc_param) {};
+            virtual ~circle() = default; // that is a virtual destructor, it is used to ensure that the destructor of the derived class is called when you delete an object of the derived class using a pointer to the base class.
+            virtual void show() override { ### -> "OVERRIDE" keyword is used to tell the compiler, catch any error if you misspelled the function name or you didn't use the same parameters as the base class function.
+                cout << "shape: " << desc << endl;
+            }
+        };
+        void show_shape(shape* shape) {
+            shape->show(); // it will call the show function in the derived class if it exists, otherwise it will call the show function in the base class.
+        }
+        int main () {
+            shape* shape1 = new shape("shape 1");
+            shape* oval1 = new oval(4.5, 3.2, "oval 1");
+            shape* circle1 = new circle(4.5, 4.5, "circle 1");
+            shape1->show(); // it will call the show function in the shape class.
+            oval1->show(); // it will call the show function in the oval class.
+            circle1->show(); // it will call the show function in the circle class.
+            delete shape1;
+            delete oval1;
+            delete circle1;
+            shape* collection[3] {shape1, oval1, circle1}; // that is how to create an array of pointers to the base class and store the derived class objects in it.
+            for(shape* shape : collection) {
+                shape->show(); // it will call the show function in the derived class if it exists, otherwise it will call the show function in the base class.
+            }
+            show_shape(shape1); // it will call the show function in the shape class.
+        }
+
+
+## Dynamic_cast<> ();
+    1. It is used to safely downcast a pointer or reference to a base class to a pointer or reference to a derived class, it returns a null pointer if the cast is not possible. It's used to print non virtual functions in the derived class when you have a pointer to the base class, it is used to check if the object is of a specific type before calling a function that is specific to that type.
+    2. Syntax:
+        shape* shape1 = new shape("shape 1");
+        oval* oval1 = dynamic_cast<oval*>(shape1); // that is how to use dynamic_cast to downcast a pointer to the base class to a pointer to the derived class, it will return a null pointer since shape1 is not an oval.
+        if(oval1) {
+            oval1->do_non_virtual_object(); // it will call the non-virtual function in the oval class if the cast is successful.
+        } else {
+            cout << "shape1 is not an oval" << endl; // it will print this message since the cast is not successful.
+        }
+
+## Pure Virtual Functions:
+    1. A pure virtual function is a virtual function that has no implementation in the base class and must be overridden in the derived class, it is used to create an abstract class which cannot be instantiated and can only be used as a base class for other classes.
+    2. Syntax:
+        class shape {
+        protected: 
+            string desc;
+        public:
+            shape() = default;
+            shape(string desc_param)
+                desc = desc_param;
+            virtual ~shape() = default; // that is a virtual destructor, it is used to ensure that the destructor of the derived class is called when you delete an object of the derived class using a pointer to the base class.
+            virtual void show() = 0; // that is a pure virtual function, it has no implementation in the base class and must be overridden in the derived class.
+        };
+        class circle : public shape {
+        protected:
+            double radius;
+        public:
+            circle() = default;
+            circle(double x_param, double y_param, string desc_param) shape(desc_param) {};
+            virtual ~circle() = default; // that is a virtual destructor, it is used to ensure that the destructor of the derived class is called when you delete an object of the derived class using a pointer to the base class.
+            virtual void show() override { ### -> "OVERRIDE" keyword is used to tell the compiler, catch any error if you misspelled the function name or you didn't use the same parameters as the base class function.
+                cout << "shape: " << desc << endl;
+            }
+        };
+## Vectors:
+        1. A dynamic array that can resize itself automatically when elements are added or removed, it is part of the C++ Standard Library and provides a convenient way to store and manipulate a collection of elements.
+        2. Syntax:
+            #include <vector>
+            vector<int> numbers; // that is how to declare a vector of integers.
+            numbers.push_back(1); // that is how to add an element to the end of the vector.
+            numbers.push_back(2);
+            numbers.push_back(3);
+            for(int number : numbers) {
+                cout << number << endl; // that is how to iterate over the elements of the vector using a range-based for loop.
+            }
+            class vertix {
+                public:
+                    double x;
+                    double y;
+            };
+            void print_vector(const vector<int>& vec) { // that is how to pass a vector to a function, we use a reference to avoid making a copy of the vector and we use const to prevent modifying the vector inside the function.
+                for(int number : vec) {
+                    cout << number << endl; // that is how to iterate over the elements of the vector using a range-based for loop.
+                }
+            }
+            int main() {
+                vector<vertix> vertices; // that is how to declare a vector of vertix objects.
+                vertices.push_back({1.0, 2.0}); // that is how to add an element to the end of the vector, we can use an initializer list to create a vertix object and add it to the vector.
+                vertices.push_back({3.0, 4.0});
+                for(vertix& v: vertices) {
+                    cout << "x: " << v.x << ", y: " << v.y << endl; // that is how to iterate over the elements of the vector using a range-based for loop.
+                }
+                print_vector(numbers); // that is how to call the function that takes a vector as a parameter.
+            }
+
+## Smart Pointers:
+    1. A smart pointer is a class template that provides automatic memory management for dynamically allocated objects, it automatically deallocates the memory when it is no longer needed, it is part of the C++ Standard Library and provides a convenient way to manage dynamic memory without having to manually delete it.
+    2. Syntax:
+        #include <memory>
+        class entity {
+            public:
+                string name;
+                int ID;
+        };
+        unique_ptr<entity> entity_ptr = make_unique<entity>(); // that is how to declare a unique pointer to an entity, it takes ownership of the dynamically allocated entity and will automatically delete it when it goes out of scope.
+        shared_ptr<entity> ptr2 = make_shared<entity>(); // that is how to declare a shared pointer to an entity, it allows multiple pointers to share ownership of the same dynamically allocated entity and will automatically delete it when the last pointer goes out of scope.
+        weak_ptr<entity> ptr3(ptr2); // that is how to declare a weak pointer to an entity, it does not take ownership of the dynamically allocated entity and can be used to check if the object still exists before accessing it.
+    3. Explanation:
+        - unique_ptr is used when you want to have a single owner of the dynamically allocated object, it cannot be copied or shared with other pointers, it is useful for managing resources that should not be shared, such as file handles or network connections.
+        - shared_ptr is used when you want to have multiple owners of the dynamically allocated object, it keeps track of the number of pointers that share ownership and will automatically delete the object when the last pointer goes out of scope, it is useful for managing resources that can be shared, such as objects in a game or nodes in a graph.
+        - weak_ptr is used to break circular references between shared_ptrs, it allows you to check if the object still exists before accessing it, it is useful for managing resources that can be shared but may have a limited lifetime, such as cache entries or observers in an observer pattern.
+
+## threads:
+    1. A method used to run to programs or functions parallaly.
+    2. Syntax:
+            #include <thread>;
+            bool is_finished = false;
+            void printing() {
+	            using namespace std::literals::chrono_literals;
+	            while (!is_finished) {
+		            cout << "Working...!" << endl;
+		            this_thread::sleep_for(1s);
+	            }
+            }
+            int main()
+            {
+	            thread working(printing);
+	            cin.get();
+	            is_finished = true;
+	            working.join(); ## used to block other fucntions below this line untile the our thread finishes.
+	            return 0;
+            }
+
+
+
+            ##################### BOOST/ ASIO LIBRARY #####################
+
+## DAYTIME CLIENT:
+using boost::asio::ip::tcp;
+int main(int argc, char* argv[])
+{
+	try
+	{
+		if (argc != 2)
+		{
+			cerr << "Usage: client <host>" << endl;
+			return 1;
+		}
+		boost::asio::io_context io;
+		tcp::resolver resolver(io);
+		tcp::resolver::results_type endpoints = resolver.resolve(argv[1], "daytime");
+		tcp::socket socket(io);
+		boost::asio::connect(socket, endpoints);
+		for (;;) {
+			vector<char> buf(128);
+			boost::system::error_code error;
+			size_t len = socket.read_some(boost::asio::buffer(buf), error);
+			if(error == boost::asio::error::eof)
+				break;
+			else if(error)
+				throw boost::system::system_error(error);
+			cout.write(buf.data(), len);
+		}
+	}
+	catch (std::exception& e)
+	{
+		std::cerr << "Exception: " << e.what() << "\n";
+	}
+}
+
+
+## DAYTIME SERVER:
+
+    using boost::asio::ip::tcp;
+    string make_daytime_string() {
+	    time_t now = time(0);
+	    return ctime(&now);
+    }
+    int main() {
+	    try {
+		    boost::asio::io_context io;
+		    tcp::acceptor acceptor(io, tcp::endpoint(tcp::v4(), 13));
+		    for (;;) {
+			    tcp::socket socket(io);
+			    acceptor.accept(socket);
+			    string message = make_daytime_string();
+			    boost::system::error_code ignored_error;
+			    boost::asio::write(socket, boost::asio::buffer(message), ignored_error);
+		    }
+	    }
+	    catch (exception& e) {
+		    cerr << e.what() << endl;
+	    }
+
+	    return 0;
+    }
