@@ -1,0 +1,106 @@
+/*
+* ASIO/server BLUEPRINT
+* 1. Setup:
+*	- io_context: The core I/O object that manages asynchronous operations.
+*	- Acceptor: Listens for
+* 2. Listing loop:
+*	- You need a function that constantly loops to accept new guests.
+*	- The Concept: Create a blank "socket room" (connection object), and tell the OS: "When someone knocks, put them in this room and call my handle_accept function."
+*	- The Critical Trick: Inside handle_accept, you must immediately call your listen function again so the guard goes back to the door for the next guest.
+* 3. The Object Lifetime Guard Step
+*	- Asynchronous code means your functions return immediately while the OS works in the background. If your connection object dies while the OS is writing to it, the program crashes.
+*	- The Concept: The connection object must hold onto itself using shared_from_this() until the OS says, "I'm done sending the data."
+* 4. The Trigger Step
+*	- Nothing actually happens until you turn the key.
+*	- The Concept: Call io_context.run(). This starts the background loop that listens for the OS to say "I'm done!" and executes your callbacks.
+*/
+
+#include <iostream>
+#include <thread>
+#include <boost/asio.hpp>
+#include <functional>
+#include <vector>
+#include <ctime>
+#include <memory>
+using namespace std;
+using boost::asio::ip::tcp;
+
+
+class chat_session : public enable_shared_from_this<chat_session> {
+public:
+	typedef shared_ptr<chat_session> pointer;
+	static pointer create(boost::asio::io_context& io_context) {
+		return make_shared<chat_session>(io_context);
+	};
+	void start() {
+		boost::asio::async_read(socket_, boost::asio::buffer(recv_buffer_), [self = shared_from_this()](const boost::system::error_code& error, size_t bytes_transferred) {
+			if (!error) {
+				self->send_buffer_ =string(self->recv_buffer_.data(), bytes_transferred);
+			}
+		});
+	};
+	void self_send(string msg) {
+		boost::asio::async_write(socket_,boost::asio::buffer(msg), [self = shared_from_this()](const boost::system::error_code& error, size_t bytes_transferred) {
+			if (!error) {
+				cout << "Sent: " << self->send_buffer_ << endl;
+			}
+			});
+	};
+	tcp::socket& socket() {
+		return socket_;
+	};
+private:
+	chat_session(boost::asio::io_context & io_context) : socket_(io_context) {};
+	tcp::socket socket_;
+	string send_buffer_;
+	array<char, 1024> recv_buffer_;
+};
+
+class chat_room {
+public:
+	void join(shared_ptr<chat_session> session) {
+		sessions_.push_back(session);
+	};
+	void leave(shared_ptr<chat_session> session) {
+		sessions_.erase(remove(sessions_.begin(), sessions_.end(), session), sessions_.end());
+	};
+	void broadcast(string msg) {
+		for (auto& session : sessions_) {
+			if (session->socket().is_open()) {
+				session->self_send(msg);
+			}
+			else {
+				leave(session);
+			}
+		}
+	};
+
+
+private:
+	vector<shared_ptr<chat_session>> sessions_;
+};
+
+class chat_server {
+public:
+	void start_accept() {
+		auto new_session = chat_session::create(io_context_);
+		acceptor_.async_accept(new_session->socket(), [this, new_session](const boost::system::error_code& error) {
+			if (!error) {
+				room_.join(new_session);
+				new_session->start();
+			}
+			start_accept();
+			});
+	};
+private:
+	chat_server(boost::asio::io_context& io_context, chat_room& room, const string host, unsigned short port) : acceptor_(io_context, tcp::endpoint(boost::asio::ip::make_address(host), port)), room_(room) {
+		start_accept();
+	};
+	boost::asio::io_context io_context_;
+	tcp::acceptor acceptor_;
+	chat_room& room_;
+};
+
+int main() {
+	return 0;
+}
