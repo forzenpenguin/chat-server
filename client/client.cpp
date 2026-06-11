@@ -19,49 +19,93 @@
 #include <vector>
 #include <ctime>
 #include <memory>
+#include <string>
 
 using namespace std;
 using boost::asio::ip::tcp;
 
-class client {
-private:
-	boost::asio::io_context& io;
-	tcp::socket socket_;
-	tcp::resolver resolver_;
+class mediator : public enable_shared_from_this<mediator> {
 public:
-	client(boost::asio::io_context& io_context) : io(io_context), socket_(io), resolver_(io) {}
-	void start(const string& host, unsigned short port) {
-		resolver_.async_resolve(host, to_string(port), [this](const boost::system::error_code& ec, tcp::resolver::results_type results) {
-			if (!ec) {
-				boost::asio::async_connect(socket_, results, bind(&client::handle_connect, this, placeholders::_1, placeholders::_2));
+	typedef shared_ptr<mediator> pointer;
+	static pointer create(boost::asio::io_context& io) {
+		return make_shared<mediator>(io);
+	}
+	mediator(boost::asio::io_context& io) : socket_(io), strand_(boost::asio::make_strand(io)) {}
+	tcp::socket& socket() {
+		return socket_;
+	}
+	void send_respond(const string respond) {
+		boost::asio::post(strand_, [self = shared_from_this(), respond]() {
+			boost::asio::async_write(self->socket_, boost::asio::buffer(respond),[](const boost::system::error_code& error, size_t bytes_transferred) {
+				if (error) {
+					cerr << "SendingError: " << error.message() << endl;
+				}
+			});
+			});
+	};
+private:
+	tcp::socket socket_;
+	boost::asio::strand<boost::asio::io_context::executor_type> strand_;
+};
+
+class sender {
+public:
+	sender(mediator::pointer med_param) : med(med_param) {};
+	void operator()() {
+		cout << "Type: " << endl;
+		getline(cin, res_msg);
+		med->send_respond(res_msg);
+	};
+private:
+	string res_msg = "";
+	mediator::pointer med;
+};
+
+
+class client {
+public:
+	client(boost::asio::io_context& io) : io_context_(io), resolver_(io_context_) {
+		buffer_.resize(1024);
+	}
+	void connect(const string host, unsigned short port) {
+		auto new_mediator = mediator::create(io_context_);
+		resolver_.async_resolve(host, std::to_string(port),
+			[this, new_mediator](const boost::system::error_code& error, tcp::resolver::results_type endpoints) {
+				if (!error) {
+					boost::asio::async_connect(new_mediator->socket(), endpoints, [this, new_mediator](const boost::system::error_code error, const tcp::endpoint& endpoint) {
+						if (!error) {
+							read_msg(new_mediator);
+						}
+						else {
+							cerr << "ConnectionError: " << error.message() << endl;
+						}
+						}
+					);
+							
+				}
+				else {
+					cerr << "ResolverError: " << error.message() << endl;
+				}
+			});
+	}
+	void read_msg(mediator::pointer med) {
+		tcp::socket& socket_ = med->socket();
+		boost::asio::async_read(socket_, boost::asio::buffer(buffer_), [this, med](const boost::system::error_code& error, size_t bytes_transferred) {
+			if (!error) {
+				cout << "Message: " << string(this->buffer_.data(), bytes_transferred) << endl;
+				sender sender1(med);
+				thread(sender1).detach();
+				read_msg(med);
 			}
 			else {
-				cerr << "Resolve error: " << ec.message() << endl;
+				cerr << "ReadError: " << error.message() << endl;
 			}
 			});
 	};
-	void handle_connect(const boost::system::error_code& ec, const tcp::endpoint& /*endpoint*/) {
-		if (!ec) {
-			vector<char> buffer_(1024);
-			cout << "Connected to server." << endl;
-			boost::system::error_code read_ec;
-			socket_.async_read_some(boost::asio::buffer(buffer_), [this, buffer_](const boost::system::error_code& read_ec, size_t len) {
-				if (!read_ec) {
-					cout << "Received: " << string(buffer_.data(), len) << endl;
-				}
-				else if (read_ec == boost::asio::error::eof) {
-					cout << "Connection closed by server." << endl;
-				}
-				else {
-					cerr << "Read error: " << read_ec.message() << endl;
-				}
-				});
-		}
-		else {
-			cerr << "Connect error: " << ec.message() << endl;
-		}
-	};
-
+private:
+	boost::asio::io_context& io_context_;
+	tcp::resolver resolver_;
+	vector<char> buffer_;
 };
 
 
@@ -70,7 +114,7 @@ int main() {
 	try {
 		boost::asio::io_context io_context;
 		client myClient(io_context);
-		myClient.start("10.40.83.48", 1234);
+		myClient.connect("10.40.83.48", 1234);
 		io_context.run();
 	}
 	catch (exception& e) {

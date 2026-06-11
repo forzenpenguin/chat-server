@@ -82,6 +82,9 @@ private:
 
 class chat_server {
 public:
+	chat_server(boost::asio::io_context& io_context, chat_room& room, const string host, unsigned short port) : io_context_(io_context), acceptor_(io_context_, tcp::endpoint(boost::asio::ip::make_address(host), port)), room_(room) {
+		start_accept();
+	};
 	void start_accept() {
 		auto new_session = chat_session::create(io_context_);
 		acceptor_.async_accept(new_session->socket(), [this, new_session](const boost::system::error_code& error) {
@@ -93,14 +96,15 @@ public:
 			});
 	};
 private:
-	chat_server(boost::asio::io_context& io_context, chat_room& room, const string host, unsigned short port) : acceptor_(io_context, tcp::endpoint(boost::asio::ip::make_address(host), port)), room_(room) {
-		start_accept();
-	};
-	boost::asio::io_context io_context_;
+	boost::asio::io_context& io_context_;
 	tcp::acceptor acceptor_;
 	chat_room& room_;
 };
 
 int main() {
+	boost::asio::io_context io_context;
+	chat_room room;
+	chat_server new_server(io_context, room, "10.40.83.48", 1234);
+	io_context.run();
 	return 0;
 }
