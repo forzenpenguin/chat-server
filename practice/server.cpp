@@ -29,13 +29,17 @@ using boost::asio::ip::tcp;
 class chat_session : public enable_shared_from_this<chat_session> {
 public:
 	typedef shared_ptr<chat_session> pointer;
-	static pointer create(boost::asio::io_context& io_context) {
+	static pointer create(boost::asio::io_context& io_context, chat_room& room) {
 		return make_shared<chat_session>(io_context);
 	};
 	void start() {
 		boost::asio::async_read(socket_, boost::asio::buffer(recv_buffer_), [self = shared_from_this()](const boost::system::error_code& error, size_t bytes_transferred) {
 			if (!error) {
-				self->send_buffer_ =string(self->recv_buffer_.data(), bytes_transferred);
+				self->send_buffer_ = string(self->recv_buffer_.data(), bytes_transferred);
+				self->room.broadcast(self->send_buffer_);
+			}
+			else {
+				cerr << "ServerReadingError: " << error.message() << endl;
 			}
 		});
 	};
@@ -44,16 +48,20 @@ public:
 			if (!error) {
 				cout << "Sent: " << self->send_buffer_ << endl;
 			}
+			else {
+				cerr << "ServerSendError: " << error.message() << endl;
+			}
 			});
 	};
 	tcp::socket& socket() {
 		return socket_;
 	};
 private:
-	chat_session(boost::asio::io_context & io_context) : socket_(io_context) {};
+	chat_session(boost::asio::io_context & io_context, chat_room& room_ptr) : socket_(io_context), room(room_ptr) {};
 	tcp::socket socket_;
 	string send_buffer_;
 	array<char, 1024> recv_buffer_;
+	chat_room& room;
 };
 
 class chat_room {
@@ -86,7 +94,7 @@ public:
 		start_accept();
 	};
 	void start_accept() {
-		auto new_session = chat_session::create(io_context_);
+		auto new_session = chat_session::create(io_context_, room_);
 		acceptor_.async_accept(new_session->socket(), [this, new_session](const boost::system::error_code& error) {
 			if (!error) {
 				room_.join(new_session);
