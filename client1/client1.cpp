@@ -20,8 +20,6 @@
 #include <ctime>
 #include <memory>
 #include <string>
-#include <chrono>
-
 
 using namespace std;
 using boost::asio::ip::tcp;
@@ -38,11 +36,11 @@ public:
 	}
 	void send_respond(const string respond) {
 		boost::asio::post(strand_, [self = shared_from_this(), respond]() {
-			boost::asio::async_write(self->socket_, boost::asio::buffer(respond),[](const boost::system::error_code& error, size_t bytes_transferred) {
+			boost::asio::async_write(self->socket_, boost::asio::buffer(respond), [](const boost::system::error_code& error, size_t bytes_transferred) {
 				if (error) {
 					cerr << "SendingError: " << error.message() << endl;
 				}
-			});
+				});
 			});
 	};
 private:
@@ -76,7 +74,6 @@ public:
 				if (!error) {
 					boost::asio::async_connect(new_mediator->socket(), endpoints, [this, new_mediator](const boost::system::error_code error, const tcp::endpoint& endpoint) {
 						if (!error) {
-							cout << "connected" << endl;
 							read_msg(new_mediator);
 						}
 						else {
@@ -84,7 +81,7 @@ public:
 						}
 						}
 					);
-							
+
 				}
 				else {
 					cerr << "ResolverError: " << error.message() << endl;
@@ -92,7 +89,8 @@ public:
 			});
 	}
 	void read_msg(mediator::pointer med) {
-		boost::asio::async_read(med->socket(), boost::asio::buffer(buffer_), boost::asio::transfer_at_least(1), [this, med](const boost::system::error_code& error, size_t bytes_transferred) {
+		tcp::socket& socket_ = med->socket();
+		boost::asio::async_read(socket_, boost::asio::buffer(buffer_), boost::asio::transfer_at_least(1), [this, med](const boost::system::error_code& error, size_t bytes_transferred) {
 			if (!error) {
 				cout << "Message: " << string(this->buffer_.data(), bytes_transferred) << endl;
 				sender sender1(med);
@@ -112,7 +110,7 @@ private:
 
 
 int main() {
-	cout << "client" << endl;
+	cout << "Client is starting..." << endl;
 	try {
 		boost::asio::io_context io_context;
 		client myClient(io_context);
