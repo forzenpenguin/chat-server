@@ -37,8 +37,9 @@ public:
 		return socket_;
 	}
 	void send_respond(const string respond) {
-		boost::asio::post(strand_, [self = shared_from_this(), respond]() {
-			boost::asio::async_write(self->socket_, boost::asio::buffer(respond),[](const boost::system::error_code& error, size_t bytes_transferred) {
+		auto res = make_shared<string>(respond);
+		boost::asio::post(strand_, [self = shared_from_this(), res]() {
+			boost::asio::async_write(self->socket_, boost::asio::buffer(*res),[res](const boost::system::error_code& error, size_t bytes_transferred) {
 				if (error) {
 					cerr << "SendingError: " << error.message() << endl;
 				}
@@ -54,7 +55,7 @@ class sender {
 public:
 	sender(mediator::pointer med_param) : med(med_param) {};
 	void operator()() {
-		cout << "Type: " << endl;
+		cout << "Type: ";
 		getline(cin, res_msg);
 		med->send_respond(res_msg);
 	};
