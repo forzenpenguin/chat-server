@@ -35,7 +35,8 @@ public:
 	};
 	void start();
 	void self_send(string msg) {
-		boost::asio::async_write(socket_,boost::asio::buffer(msg), [self = shared_from_this()](const boost::system::error_code& error, size_t bytes_transferred) {
+		auto shared_msg = make_shared<string>(msg);
+		boost::asio::async_write(socket_,boost::asio::buffer(*shared_msg), [self = shared_from_this(), shared_msg](const boost::system::error_code& error, size_t bytes_transferred) {
 			if (!error) {
 				cout << "Sent: " << self->send_buffer_ << endl;
 			}
@@ -104,7 +105,7 @@ public:
 			if (!error) {
 				room_.join(new_session);
 				if (room_.get_sessions().size() == 1) {
-					boost::asio::async_write(new_session->socket(), boost::asio::buffer("SERVER: Chat Room Started!"), [](const boost::system::error_code& error, size_t bytes_transfered) {
+					boost::asio::async_write(new_session->socket(), boost::asio::buffer("<SERVER> Chat Room Started!"), [](const boost::system::error_code& error, size_t bytes_transfered) {
 						if (!error) {
 							cout << "sent!!!!!!!!!: BTYES:  " << bytes_transfered << endl;
 						}
