@@ -1,19 +1,3 @@
-/*
-* ASIO/client BLUEPRINT
-* 1. The Setup Step
-*	- The Concept: Create the engine, create a blank socket, and set up a translator (resolver).
-*	- The Code Mindset: "Create io_context, tcp::socket, and tcp::resolver."
-* 2. The Resolve and Connect Step
-*	- The Concept: Tell the resolver to look up the address. When it finishes, pass those address results to the socket and say, "Hey OS, connect to this address. Call my lambda when the handshake is complete."
-*	- The Code Mindset: resolver.async_resolve(...) triggers socket.async_connect(...).
-* 3. The Read/Write Loop Step
-*	- The Concept: Tell the OS: "Read whatever data comes into this socket into my buffer. Wake me up via this lambda when you've got something."
-*	- The Critical Trick: Just like the server's accept loop, if you expect multiple pieces of data, your read callback must call async_read or async_read_some again to keep listening.
-* 4. The Trigger Step
-*	-The Concept: Call io_context.run().
-*/
-
-
 #include <iostream>
 #include <boost/asio.hpp>
 #include <vector>
@@ -65,9 +49,7 @@ private:
 
 class client {
 public:
-	client(boost::asio::io_context& io) : io_context_(io), resolver_(io_context_) {
-		buffer_.resize(1024);
-	}
+	client(boost::asio::io_context& io) : io_context_(io), resolver_(io_context_) { buffer_.resize(1024); }
 	void connect(const string host, unsigned short port) {
 		auto new_mediator = mediator::create(io_context_);
 		resolver_.async_resolve(host, std::to_string(port),
@@ -90,9 +72,9 @@ public:
 			});
 	}
 	void read_msg(mediator::pointer med) {
-		tcp::socket& socket_ = med->socket();
-		boost::asio::async_read(socket_, boost::asio::buffer(buffer_), boost::asio::transfer_at_least(1), [this, med](const boost::system::error_code& error, size_t bytes_transferred) {
+		boost::asio::async_read(med->socket(), boost::asio::buffer(buffer_), boost::asio::transfer_at_least(1), [this, med](const boost::system::error_code& error, size_t bytes_transferred) {
 			if (!error) {
+				cout << "bytes: " << bytes_transferred << endl;
 				cout << "Message: " << string(this->buffer_.data(), bytes_transferred) << endl;
 				sender sender1(med);
 				thread(sender1).detach();
@@ -106,7 +88,7 @@ public:
 private:
 	boost::asio::io_context& io_context_;
 	tcp::resolver resolver_;
-	vector<char> buffer_;
+	vector<char>buffer_;
 };
 
 

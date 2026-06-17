@@ -1,27 +1,9 @@
-/*
-* ASIO/client BLUEPRINT
-* 1. The Setup Step
-*	- The Concept: Create the engine, create a blank socket, and set up a translator (resolver).
-*	- The Code Mindset: "Create io_context, tcp::socket, and tcp::resolver."
-* 2. The Resolve and Connect Step
-*	- The Concept: Tell the resolver to look up the address. When it finishes, pass those address results to the socket and say, "Hey OS, connect to this address. Call my lambda when the handshake is complete."
-*	- The Code Mindset: resolver.async_resolve(...) triggers socket.async_connect(...).
-* 3. The Read/Write Loop Step
-*	- The Concept: Tell the OS: "Read whatever data comes into this socket into my buffer. Wake me up via this lambda when you've got something."
-*	- The Critical Trick: Just like the server's accept loop, if you expect multiple pieces of data, your read callback must call async_read or async_read_some again to keep listening.
-* 4. The Trigger Step
-*	-The Concept: Call io_context.run().
-*/
-
-
 #include <iostream>
 #include <boost/asio.hpp>
 #include <vector>
 #include <ctime>
 #include <memory>
 #include <string>
-#include <chrono>
-
 
 using namespace std;
 using boost::asio::ip::tcp;
@@ -39,14 +21,11 @@ public:
 	void send_respond(const string respond) {
 		auto res = make_shared<string>(respond);
 		boost::asio::post(strand_, [self = shared_from_this(), res]() {
-			boost::asio::async_write(self->socket_, boost::asio::buffer(*res),[res](const boost::system::error_code& error, size_t bytes_transferred) {
+			boost::asio::async_write(self->socket_, boost::asio::buffer(*res), [res](const boost::system::error_code& error, size_t bytes_transferred) {
 				if (error) {
 					cerr << "SendingError: " << error.message() << endl;
 				}
-				else {
-					cout << "succefuly sent: " << *res << " btyes: " << bytes_transferred << endl;
-				}
-			});
+				});
 			});
 	};
 private:
@@ -78,7 +57,6 @@ public:
 				if (!error) {
 					boost::asio::async_connect(new_mediator->socket(), endpoints, [this, new_mediator](const boost::system::error_code error, const tcp::endpoint& endpoint) {
 						if (!error) {
-							cout << "connected" << endl;
 							read_msg(new_mediator);
 						}
 						else {
@@ -86,7 +64,7 @@ public:
 						}
 						}
 					);
-							
+
 				}
 				else {
 					cerr << "ResolverError: " << error.message() << endl;
@@ -96,6 +74,7 @@ public:
 	void read_msg(mediator::pointer med) {
 		boost::asio::async_read(med->socket(), boost::asio::buffer(buffer_), boost::asio::transfer_at_least(1), [this, med](const boost::system::error_code& error, size_t bytes_transferred) {
 			if (!error) {
+				cout << "bytes: " << bytes_transferred << endl;
 				cout << "Message: " << string(this->buffer_.data(), bytes_transferred) << endl;
 				sender sender1(med);
 				thread(sender1).detach();
@@ -109,12 +88,12 @@ public:
 private:
 	boost::asio::io_context& io_context_;
 	tcp::resolver resolver_;
-	vector<char> buffer_;
+	vector<char>buffer_;
 };
 
 
 int main() {
-	cout << "client" << endl;
+	cout << "Client 3..." << endl;
 	try {
 		boost::asio::io_context io_context;
 		client myClient(io_context);
