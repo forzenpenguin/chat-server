@@ -29,12 +29,19 @@ public:
 	chat_session(boost::asio::io_context& io_context, chat_room& room_ptr) : socket_(io_context), room(room_ptr) {
 		instance_number = increment_instance;
 	};
+	string get_username() {
+		return username;
+	};
+	void set_username(const string username_param) {
+		username = username_param;
+	}
 private:
 	tcp::socket socket_;
 	string send_buffer_;
 	array<char, 1024> recv_buffer_;
 	chat_room& room;
 	int instance_number = 0;
+	string username = "";
 };
 
 class chat_room {
@@ -121,6 +128,14 @@ public:
 			if (!error) {
 				increment_instance++;
 				room_.join(new_session);
+				boost::asio::async_read(new_session->socket(), boost::asio::buffer(temUsernameHolder), boost::asio::transfer_at_least(1),[this, new_session](const boost::system::error_code& ec, size_t bytes_transferred) {
+					if (!ec) {
+						new_session->set_username(string(temUsernameHolder.data(), bytes_transferred));
+					}
+					else {
+						cerr << "<USERNAME> " << ec.message() << endl;
+					}
+				});
 				if (room_.get_sessions().size() == 1) {
 					boost::asio::async_write(new_session->socket(), boost::asio::buffer("<SERVER> Chat Room Started!"), [](const boost::system::error_code& error, size_t bytes_transfered) {
 						if (error) {
@@ -138,6 +153,7 @@ private:
 	boost::asio::io_context& io_context_;
 	tcp::acceptor acceptor_;
 	chat_room& room_;
+	array<char, 100> temUsernameHolder;
 };
 
 int main() {

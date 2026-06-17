@@ -49,7 +49,7 @@ private:
 
 class client {
 public:
-	client(boost::asio::io_context& io) : io_context_(io), resolver_(io_context_) { buffer_.resize(1024); }
+	client(boost::asio::io_context& io, const string username_param) : io_context_(io), resolver_(io_context_), username(username_param) { buffer_.resize(1024); }
 	void connect(const string host, unsigned short port) {
 		auto new_mediator = mediator::create(io_context_);
 		resolver_.async_resolve(host, std::to_string(port),
@@ -57,6 +57,12 @@ public:
 				if (!error) {
 					boost::asio::async_connect(new_mediator->socket(), endpoints, [this, new_mediator](const boost::system::error_code error, const tcp::endpoint& endpoint) {
 						if (!error) {
+							boost::asio::async_write(new_mediator->socket(), boost::asio::buffer(username), [this](const boost::system::error_code& error, size_t bytes_transferred) {
+								if (error)
+									cerr << "<USERNAME> " << error.message() << endl;
+								else
+									cout << "username: " << username << "bytes: " << bytes_transferred << endl;
+								});
 							read_msg(new_mediator);
 						}
 						else {
@@ -88,14 +94,20 @@ private:
 	boost::asio::io_context& io_context_;
 	tcp::resolver resolver_;
 	vector<char>buffer_;
+	string username = "";
 };
 
 
-int main() {
+int main(int argc, char* argv[]) {
+	if (argc < 2) {
+		cerr << "parameters required" << argv[0] << "usename" << endl;
+		return 1;
+	}
+	string username = argv[1];
 	cout << "=============================Chat Room=====================================" << endl;
 	try {
 		boost::asio::io_context io_context;
-		client myClient(io_context);
+		client myClient(io_context, username);
 		myClient.connect("10.134.87.48", 1234);
 		io_context.run();
 	}
