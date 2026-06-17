@@ -19,17 +19,7 @@ public:
 		return make_shared<chat_session>(io_context, room_ptr);
 	};
 	void start();
-	void self_send(string msg) {
-		auto shared_msg = make_shared<string>(msg);
-		boost::asio::async_write(socket_,boost::asio::buffer(*shared_msg), [self = shared_from_this(), shared_msg](const boost::system::error_code& error, size_t bytes_transferred) {
-			if (!error) {
-				cout << "Sent: " << string(*shared_msg) << endl;
-			}
-			else {
-				cerr << "ServerSendError: " << error.message() << endl;
-			}
-			});
-	};
+	void self_send(string msg);
 	tcp::socket& socket() {
 		return socket_;
 	};
@@ -51,14 +41,27 @@ class chat_room {
 public:
 	void join(shared_ptr<chat_session> session) {
 		sessions_.push_back(session);
+		for (auto& session : sessions_) {
+			boost::asio::async_write(session->socket(), boost::asio::buffer("USER JOIN"), [](const boost::system::error_code& error, size_t bytes_transferred) {
+				if (error)
+					cerr << "<JOININGERROR>: " << error.message() << endl;
+				});
+		}
 	};
 	void leave(shared_ptr<chat_session> session) {
 		sessions_.erase(remove(sessions_.begin(), sessions_.end(), session), sessions_.end());
+		auto left_msg = make_shared<string>("USER LEFT");
+		for (auto& session : sessions_) {
+			boost::asio::async_write(session->socket(), boost::asio::buffer(*left_msg), [left_msg](const boost::system::error_code& error, size_t bytes_transferred) {
+				if (error)
+					cerr << "<lEAVINGERROR>: " << error.message() << endl;
+				});
+		}
 	};
 	void broadcast(string msg, int& instance_num_param) {
 		for (auto& session : sessions_) {
-			if (session->get_instance_number() == instance_num_param)
-				continue;
+			//if (session->get_instance_number() == instance_num_param)
+			//	continue;
 			if (session->socket().is_open() && session->get_instance_number() != instance_num_param) {
 				session->self_send(msg);
 			}
@@ -83,8 +86,26 @@ void chat_session::start() {
 			cout << "received: " << string(self->recv_buffer_.data(), bytes_transferred) << endl;
 			self->start();
 		}
+		else if (error == boost::asio::error::eof ||
+			error == boost::asio::error::connection_reset)
+		{
+			boost::asio::post(self->socket_.get_executor(), [self]() {
+				self->room.leave(self);
+				});
+		}
 		else {
-			cerr << "ServerReadingError: " << error.message() << endl;
+			cerr << "<ReadingError> " << error.message() << endl;
+		}
+		});
+};
+void chat_session::self_send(string msg) {
+	auto shared_msg = make_shared<string>(msg);
+	boost::asio::async_write(socket_, boost::asio::buffer(*shared_msg), [self = shared_from_this(), shared_msg](const boost::system::error_code& error, size_t bytes_transferred) {
+		if (!error) {
+			cout << "Sent: " << string(*shared_msg) << endl;
+		}
+		else {
+			cerr << "<SendError> " << error.message() << endl;
 		}
 		});
 };
@@ -103,7 +124,7 @@ public:
 				if (room_.get_sessions().size() == 1) {
 					boost::asio::async_write(new_session->socket(), boost::asio::buffer("<SERVER> Chat Room Started!"), [](const boost::system::error_code& error, size_t bytes_transfered) {
 						if (error) {
-							cerr << "SERVER: " << error.message() << endl;
+							cerr << "<SERVER> " << error.message() << endl;
 
 						}
 						});
