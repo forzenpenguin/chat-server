@@ -78,7 +78,6 @@ public:
 				if (!error) {
 					boost::asio::async_connect(new_mediator->socket(), endpoints, [this, new_mediator](const boost::system::error_code error, const tcp::endpoint& endpoint) {
 						if (!error) {
-							cout << "connected" << endl;
 							read_msg(new_mediator);
 						}
 						else {
@@ -114,7 +113,7 @@ private:
 
 
 int main() {
-	cout << "client" << endl;
+	cout << "=============================Chat Room================================" << endl;
 	try {
 		boost::asio::io_context io_context;
 		client myClient(io_context);

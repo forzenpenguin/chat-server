@@ -76,7 +76,6 @@ private:
 };
 
 void chat_session::start() {
-	cout << "reading user message" << endl;
 	boost::asio::async_read(socket_, boost::asio::buffer(recv_buffer_), boost::asio::transfer_at_least(1), [self = shared_from_this()](const boost::system::error_code& error, size_t bytes_transferred) {
 		if (!error) {
 			self->send_buffer_ = string(self->recv_buffer_.data(), bytes_transferred);
@@ -103,11 +102,9 @@ public:
 				room_.join(new_session);
 				if (room_.get_sessions().size() == 1) {
 					boost::asio::async_write(new_session->socket(), boost::asio::buffer("<SERVER> Chat Room Started!"), [](const boost::system::error_code& error, size_t bytes_transfered) {
-						if (!error) {
-							cout << "sent!!!!!!!!!: BTYES:  " << bytes_transfered << endl;
-						}
-						else {
+						if (error) {
 							cerr << "SERVER: " << error.message() << endl;
+
 						}
 						});
 				};
