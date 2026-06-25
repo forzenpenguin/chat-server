@@ -19,7 +19,7 @@ public:
 		return make_shared<chat_session>(io_context, room_ptr);
 	};
 	void start();
-	void self_send(string msg);
+	void self_send(string msg, string username_buffer);
 	tcp::socket& socket() {
 		return socket_;
 	};
@@ -67,12 +67,12 @@ public:
 		}
 		sessions_.erase(remove(sessions_.begin(), sessions_.end(), session), sessions_.end());
 	};
-	void broadcast(string msg, int& instance_num_param) {
+	void broadcast(string msg, int& instance_num_param, string username_buffer) {
 		for (auto& session : sessions_) {
 			if (session->get_instance_number() == instance_num_param)
 				continue;
 			if (session->socket().is_open()) {
-				session->self_send(msg);
+				session->self_send(msg, username_buffer);
 			}
 		}
 	};
@@ -88,7 +88,7 @@ void chat_session::start() {
 	boost::asio::async_read(socket_, boost::asio::buffer(recv_buffer_), boost::asio::transfer_at_least(1), [self = shared_from_this()](const boost::system::error_code& error, size_t bytes_transferred) {
 		if (!error) {
 			self->send_buffer_ = string(self->recv_buffer_.data(), bytes_transferred);
-			self->room.broadcast(self->send_buffer_, self->instance_number);
+			self->room.broadcast(self->send_buffer_, self->instance_number, self->username);
 			cout << "received: " << string(self->recv_buffer_.data(), bytes_transferred) << endl;
 			self->start();
 		}
@@ -104,8 +104,8 @@ void chat_session::start() {
 		}
 		});
 };
-void chat_session::self_send(string msg) {
-	auto shared_msg = make_shared<string>(msg);
+void chat_session::self_send(string msg, string username_buffer) {
+	auto shared_msg = make_shared<string>(username_buffer + ": " + msg);
 	boost::asio::async_write(socket_, boost::asio::buffer(*shared_msg), [self = shared_from_this(), shared_msg](const boost::system::error_code& error, size_t bytes_transferred) {
 		if (!error) {
 			cout << "Sent: " << string(*shared_msg) << endl;

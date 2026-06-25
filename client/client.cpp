@@ -101,7 +101,7 @@ public:
 	void read_msg(mediator::pointer med) {
 		boost::asio::async_read(med->socket(), boost::asio::buffer(buffer_), boost::asio::transfer_at_least(1), [this, med](const boost::system::error_code& error, size_t bytes_transferred) {
 			if (!error) {
-				cout << "Message: " << string(this->buffer_.data(), bytes_transferred) << endl;
+				cout << string(this->buffer_.data(), bytes_transferred) << endl;
 				sender sender1(med);
 				thread(sender1).detach();
 				read_msg(med);
