@@ -1,9 +1,27 @@
+/*
+* ASIO/client BLUEPRINT
+* 1. The Setup Step
+*	- The Concept: Create the engine, create a blank socket, and set up a translator (resolver).
+*	- The Code Mindset: "Create io_context, tcp::socket, and tcp::resolver."
+* 2. The Resolve and Connect Step
+*	- The Concept: Tell the resolver to look up the address. When it finishes, pass those address results to the socket and say, "Hey OS, connect to this address. Call my lambda when the handshake is complete."
+*	- The Code Mindset: resolver.async_resolve(...) triggers socket.async_connect(...).
+* 3. The Read/Write Loop Step
+*	- The Concept: Tell the OS: "Read whatever data comes into this socket into my buffer. Wake me up via this lambda when you've got something."
+*	- The Critical Trick: Just like the server's accept loop, if you expect multiple pieces of data, your read callback must call async_read or async_read_some again to keep listening.
+* 4. The Trigger Step
+*	-The Concept: Call io_context.run().
+*/
+
+
 #include <iostream>
 #include <boost/asio.hpp>
 #include <vector>
 #include <ctime>
 #include <memory>
 #include <string>
+#include <chrono>
+
 
 using namespace std;
 using boost::asio::ip::tcp;
@@ -24,6 +42,9 @@ public:
 			boost::asio::async_write(self->socket_, boost::asio::buffer(*res), [res](const boost::system::error_code& error, size_t bytes_transferred) {
 				if (error) {
 					cerr << "SendingError: " << error.message() << endl;
+				}
+				else {
+					cout << "succefuly sent: " << *res << " btyes: " << bytes_transferred << endl;
 				}
 				});
 			});
@@ -61,7 +82,7 @@ public:
 								if (error)
 									cerr << "<USERNAME> " << error.message() << endl;
 								else
-									cout << "username: " << username << "bytes: " << bytes_transferred << endl;
+									cout << "username: " << username << "bytes sent: " << bytes_transferred << endl;
 								});
 							read_msg(new_mediator);
 						}
@@ -93,7 +114,7 @@ public:
 private:
 	boost::asio::io_context& io_context_;
 	tcp::resolver resolver_;
-	vector<char>buffer_;
+	vector<char> buffer_;
 	string username = "";
 };
 
@@ -104,11 +125,11 @@ int main(int argc, char* argv[]) {
 		return 1;
 	}
 	string username = argv[1];
-	cout << "=============================Chat Room=====================================" << endl;
+	cout << "=============================Chat Room===============================" << endl;
 	try {
 		boost::asio::io_context io_context;
 		client myClient(io_context, username);
-		myClient.connect("10.134.87.48", 1234);
+		myClient.connect("10.184.251.48", 1234);
 		io_context.run();
 	}
 	catch (exception& e) {

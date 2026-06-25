@@ -34,6 +34,7 @@ public:
 	};
 	void set_username(const string username_param) {
 		username = username_param;
+		cout << "username: " << username << endl;
 	}
 private:
 	tcp::socket socket_;
@@ -41,39 +42,37 @@ private:
 	array<char, 1024> recv_buffer_;
 	chat_room& room;
 	int instance_number = 0;
-	string username = "";
+	string username = "NULL";
 };
 
 class chat_room {
 public:
 	void join(shared_ptr<chat_session> session) {
 		sessions_.push_back(session);
+		//auto usernameBuffer = make_shared<string>(session->get_username());
 		for (auto& session : sessions_) {
-			boost::asio::async_write(session->socket(), boost::asio::buffer("USER JOIN"), [](const boost::system::error_code& error, size_t bytes_transferred) {
+			boost::asio::async_write(session->socket(), boost::asio::buffer( "USER JOINED"), [](const boost::system::error_code& error, size_t bytes_transferred) {
 				if (error)
 					cerr << "<JOININGERROR>: " << error.message() << endl;
 				});
 		}
 	};
 	void leave(shared_ptr<chat_session> session) {
-		sessions_.erase(remove(sessions_.begin(), sessions_.end(), session), sessions_.end());
-		auto left_msg = make_shared<string>("USER LEFT");
+		auto left_msg = make_shared<string>(session->get_username() + " LEFT");
 		for (auto& session : sessions_) {
 			boost::asio::async_write(session->socket(), boost::asio::buffer(*left_msg), [left_msg](const boost::system::error_code& error, size_t bytes_transferred) {
 				if (error)
 					cerr << "<lEAVINGERROR>: " << error.message() << endl;
 				});
 		}
+		sessions_.erase(remove(sessions_.begin(), sessions_.end(), session), sessions_.end());
 	};
 	void broadcast(string msg, int& instance_num_param) {
 		for (auto& session : sessions_) {
-			//if (session->get_instance_number() == instance_num_param)
-			//	continue;
-			if (session->socket().is_open() && session->get_instance_number() != instance_num_param) {
+			if (session->get_instance_number() == instance_num_param)
+				continue;
+			if (session->socket().is_open()) {
 				session->self_send(msg);
-			}
-			else {
-				leave(session);
 			}
 		}
 	};
@@ -127,7 +126,6 @@ public:
 		acceptor_.async_accept(new_session->socket(), [this, new_session](const boost::system::error_code& error) {
 			if (!error) {
 				increment_instance++;
-				room_.join(new_session);
 				boost::asio::async_read(new_session->socket(), boost::asio::buffer(temUsernameHolder), boost::asio::transfer_at_least(1),[this, new_session](const boost::system::error_code& ec, size_t bytes_transferred) {
 					if (!ec) {
 						new_session->set_username(string(temUsernameHolder.data(), bytes_transferred));
@@ -136,6 +134,7 @@ public:
 						cerr << "<USERNAME> " << ec.message() << endl;
 					}
 				});
+				room_.join(new_session);
 				if (room_.get_sessions().size() == 1) {
 					boost::asio::async_write(new_session->socket(), boost::asio::buffer("<SERVER> Chat Room Started!"), [](const boost::system::error_code& error, size_t bytes_transfered) {
 						if (error) {
@@ -160,7 +159,7 @@ int main() {
 	cout << "server " << endl;
 	boost::asio::io_context io_context;
 	chat_room room;
-	chat_server new_server(io_context, room, "10.134.87.48", 1234);
+	chat_server new_server(io_context, room, "10.184.251.48", 1234);
 	io_context.run();
 	return 0;
 }

@@ -82,7 +82,7 @@ public:
 								if (error)
 									cerr << "<USERNAME> " << error.message() << endl;
 								else 
-									cout <<"username: " << username << "bytes: " << bytes_transferred << endl;
+									cout <<"username: " << username << "bytes sent: " << bytes_transferred << endl;
 							});
 							read_msg(new_mediator);
 						}
@@ -129,7 +129,7 @@ int main(int argc, char* argv[]) {
 	try {
 		boost::asio::io_context io_context;
 		client myClient(io_context, username);
-		myClient.connect("10.134.87.48", 1234);
+		myClient.connect("10.184.251.48", 1234);
 		io_context.run();
 	}
 	catch (exception& e) {
